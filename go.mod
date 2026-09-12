@@ -2,7 +2,10 @@ module github.com/ionut-t/ask
 
 go 1.25.5
 
-require google.golang.org/genai v1.46.0
+require (
+	github.com/atotto/clipboard v0.1.4
+	google.golang.org/genai v1.46.0
+)
 
 require (
 	cloud.google.com/go v0.116.0 // indirect

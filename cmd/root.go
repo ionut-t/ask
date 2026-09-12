@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/ionut-t/ask/internal/config"
 	"github.com/ionut-t/ask/pkg/llm/llmfactory"
 )
@@ -36,12 +37,20 @@ func Execute() {
 		fmt.Fprintf(os.Stderr, "Error initialising LLM: %v\n", err)
 		os.Exit(1)
 	}
-	defer llm.Close()
+	defer func() {
+		if err := llm.Close(); err != nil {
+			fmt.Fprintf(os.Stderr, "Error closing LLM: %v\n", err)
+		}
+	}()
 
 	response, err := llm.Generate(ctx, prompt)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error generating response: %v\n", err)
 		os.Exit(1)
+	}
+
+	if cfg.Copy {
+		copyToClipboard(response)
 	}
 
 	fmt.Println("\n" + response)
@@ -74,4 +83,20 @@ func getPrompt() (string, error) {
 	}
 
 	return strings.Join(input, "\n"), nil
+}
+
+func copyToClipboard(text string) {
+	text = strings.TrimSpace(text)
+	// trim backticks if response is wrapped in a code block
+	if strings.HasPrefix(text, "```") {
+		if end := strings.Index(text, "\n"); end != -1 {
+			text = text[end+1:]
+		}
+		text = strings.TrimSuffix(text, "```")
+		text = strings.TrimSpace(text)
+	}
+
+	if err := clipboard.WriteAll(text); err != nil {
+		fmt.Fprintf(os.Stderr, "Error copying to clipboard: %v\n", err)
+	}
 }
